@@ -86,10 +86,38 @@ async function run() {
             }
         });
 
-        app.put("/campaigns/:id", async (req, res) => {
-            const id = req.params.id;
-            res.send(id); // To be implemented with MongoDB update query
+        app.put('/campaigns/:id', async (req, res) => {
+            const { id } = req.params;
+            const { image, title, type, description, minDonation, deadline } = req.body;
+        
+            try {
+                const updatedCampaign = {
+                    $set: {
+                        image,
+                        title,
+                        type,
+                        description,
+                        minDonation,
+                        deadline: new Date(deadline),
+                    },
+                };
+        
+                const result = await campaignsCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    updatedCampaign
+                );
+        
+                if (result.modifiedCount === 0) {
+                    return res.status(404).json({ message: 'Campaign not found or not updated' });
+                }
+        
+                res.status(200).json({ message: 'Campaign updated successfully' });
+            } catch (error) {
+                console.error('Error updating campaign:', error);
+                res.status(500).json({ message: 'Failed to update campaign', error: error.message });
+            }
         });
+        
 
         app.delete('/campaigns/:id', async (req, res) => {
             const { id } = req.params;
@@ -121,7 +149,7 @@ async function run() {
         });
         
         // -------------donation collection------------
-        app.post("/donate", async (req, res) => {
+        app.post("/donation", async (req, res) => {
             const { campaignId, userEmail, userName } = req.body;
 
             if (!campaignId || !userEmail || !userName) {
@@ -140,6 +168,45 @@ async function run() {
                 res.status(201).json({ message: 'Donation successful', donationId: result.insertedId });
             } catch (error) {
                 res.status(500).json({ message: 'Server error', error: error.message });
+            }
+        });
+
+        app.get('/myDonations', async (req, res) => {
+            const userEmail = req.query.email;
+        
+            try {
+                const donations = await donatedCollection.find({ userEmail }).toArray();
+        
+                if (!donations.length) {
+                    return res.status(404).json({ message: 'No donations found' });
+                }
+        
+                
+                const campaignIds = donations.map(donation => new ObjectId(donation.campaignId));
+                const campaigns = await campaignsCollection.find({ _id: { $in: campaignIds } }).toArray();
+        
+                // Merge donation data with campaign details
+                const mergedData = donations.map(donation => {
+                    
+                    const campaign = campaigns.find(camp => camp._id.toString() === donation.campaignId.toString());
+                    
+                    console.log(campaigns);
+                    return {
+                        donationId: donation._id,
+                        donatedAt: donation.donatedAt,
+                        userName: donation.userName,
+                        campaignTitle: campaign ? campaign.title : 'Campaign not found',
+                        amount: campaign ? campaign.
+                        minDonation
+                         : 'N/A',
+                        image: campaign ? campaign.image : 'N/A',
+                    };
+                });
+                
+                res.status(200).json(mergedData);
+            } catch (error) {
+                console.error('Error fetching donations:', error);
+                res.status(500).json({ message: 'Failed to fetch donations', error: error.message });
             }
         });
     } catch (error) {
