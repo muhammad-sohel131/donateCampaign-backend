@@ -33,12 +33,17 @@ async function run() {
         const campaignsCollection = database.collection('campaigns');
         const donatedCollection = database.collection('donated');
 
-        // Define your routes
-        app.get("/campaigns", async (req, res) => {
-            const campaigns = await campaignsCollection.find({}).toArray();
-            res.json(campaigns);
+        app.get('/campaigns', async (req, res) => {
+            try {
+                const campaigns = await campaignsCollection.find().toArray();
+                res.status(200).json(campaigns);
+            } catch (error) {
+                console.error('Error fetching campaigns:', error);
+                res.status(500).json({ message: 'Failed to fetch campaigns', error: error.message });
+            }
         });
-
+        
+        
         app.post("/campaigns", async (req, res) => {
             try {
                 const { image, title, type, description, minDonation, deadline, userEmail, userName } = req.body;
@@ -86,11 +91,35 @@ async function run() {
             res.send(id); // To be implemented with MongoDB update query
         });
 
-        app.delete("/campaigns/:id", async (req, res) => {
-            const id = req.params.id;
-            res.send(id); // To be implemented with MongoDB delete query
+        app.delete('/campaigns/:id', async (req, res) => {
+            const { id } = req.params;
+        
+            try {
+                const result = await campaignsCollection.deleteOne({ _id: new ObjectId(id) });
+                if (result.deletedCount === 1) {
+                    res.status(200).json({ message: 'Campaign deleted successfully' });
+                } else {
+                    res.status(404).json({ message: 'Campaign not found' });
+                }
+            } catch (error) {
+                console.error('Error deleting campaign:', error);
+                res.status(500).json({ message: 'Failed to delete campaign', error: error.message });
+            }
         });
+        
 
+        app.get('/myCampaigns', async (req, res) => {
+            const userEmail = req.query.email;
+        
+            try {
+                const userCampaigns = await campaignsCollection.find({ userEmail }).toArray();
+                res.status(200).json(userCampaigns);
+            } catch (error) {
+                console.error('Error fetching user campaigns:', error);
+                res.status(500).json({ message: 'Failed to fetch your campaigns', error: error.message });
+            }
+        });
+        
         // -------------donation collection------------
         app.post("/donate", async (req, res) => {
             const { campaignId, userEmail, userName } = req.body;
