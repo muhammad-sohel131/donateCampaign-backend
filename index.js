@@ -190,7 +190,6 @@ async function run() {
                     
                     const campaign = campaigns.find(camp => camp._id.toString() === donation.campaignId.toString());
                     
-                    console.log(campaigns);
                     return {
                         donationId: donation._id,
                         donatedAt: donation.donatedAt,
@@ -209,6 +208,20 @@ async function run() {
                 res.status(500).json({ message: 'Failed to fetch donations', error: error.message });
             }
         });
+
+        app.get('/running', async (req, res) => {
+            try {
+                const campaigns = await campaignsCollection
+                    .find({ deadline: { $gte: new Date() } })
+                    .limit(6)
+                    .toArray();
+                res.status(200).json(campaigns);
+            } catch (error) {
+                console.error('Error fetching running campaigns:', error);
+                res.status(500).json({ message: 'Failed to fetch running campaigns', error: error.message });
+            }
+        });
+        
     } catch (error) {
         console.error('Error connecting to MongoDB:', error);
     }
