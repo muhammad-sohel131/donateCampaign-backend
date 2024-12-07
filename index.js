@@ -22,12 +22,12 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        await client.connect();
-        console.log("Connected!");
+        // await client.connect();
+        // console.log("Connected!");
 
-        // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        
+        // await client.db("admin").command({ ping: 1 });
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         const database = client.db('donationCamp');
         const campaignsCollection = database.collection('campaigns');
@@ -71,7 +71,7 @@ async function run() {
             }
         });
 
-        app.get("/campaigns/:id", async (req, res) => {
+        app.get("/campaign/:id", async (req, res) => {
             const id = req.params.id;
             
             try {
